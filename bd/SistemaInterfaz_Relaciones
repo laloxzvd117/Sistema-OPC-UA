@@ -1,0 +1,133 @@
+-- ============================================================
+--  SCRIPT 02 — RELACIONES (FOREIGN KEYS)
+--  Sistema: OPC UA — Línea de Producción de Frascos
+--  Base de datos: SistemaInterfaz
+--  Ejecutar después de: SistemaInterfaz_tablas.sql
+-- ============================================================
+
+-- ------------------------------------------------------------
+-- USUARIO → ROL
+-- Un usuario pertenece a un rol
+-- ------------------------------------------------------------
+ALTER TABLE "USUARIO"
+    ADD CONSTRAINT "FK_Usuario_Rol"
+    FOREIGN KEY ("Id_Rol")
+    REFERENCES "ROL" ("Id_Rol")
+    ON UPDATE CASCADE
+    ON DELETE SET NULL;
+
+-- ------------------------------------------------------------
+-- SESION → USUARIO
+-- Una sesión pertenece a un usuario
+-- ------------------------------------------------------------
+ALTER TABLE "SESION"
+    ADD CONSTRAINT "FK_Sesion_Usuario"
+    FOREIGN KEY ("Id_Usuario")
+    REFERENCES "USUARIO" ("Id_Usuario")
+    ON UPDATE CASCADE
+    ON DELETE CASCADE;
+
+-- ------------------------------------------------------------
+-- LOTE → PRODUCTO
+-- Un lote produce un tipo de producto
+-- ------------------------------------------------------------
+ALTER TABLE "LOTE"
+    ADD CONSTRAINT "FK_Lote_Producto"
+    FOREIGN KEY ("Id_Producto")
+    REFERENCES "PRODUCTO" ("Id_Producto")
+    ON UPDATE CASCADE
+    ON DELETE RESTRICT;     -- no borrar producto si tiene lotes
+
+-- ------------------------------------------------------------
+-- LOTE → USUARIO
+-- Un lote es registrado por un usuario
+-- ------------------------------------------------------------
+ALTER TABLE "LOTE"
+    ADD CONSTRAINT "FK_Lote_Usuario"
+    FOREIGN KEY ("Id_Usuario")
+    REFERENCES "USUARIO" ("Id_Usuario")
+    ON UPDATE CASCADE
+    ON DELETE RESTRICT;
+
+-- ------------------------------------------------------------
+-- LECTURA → LOTE
+-- Cada lectura (frasco) pertenece a un lote
+-- ------------------------------------------------------------
+ALTER TABLE "LECTURA"
+    ADD CONSTRAINT "FK_Lectura_Lote"
+    FOREIGN KEY ("Id_Lote")
+    REFERENCES "LOTE" ("Id_Lote")
+    ON UPDATE CASCADE
+    ON DELETE CASCADE;
+
+-- ------------------------------------------------------------
+-- ALERTA → LECTURA
+-- Una alerta se genera a partir de una lectura defectuosa
+-- ------------------------------------------------------------
+ALTER TABLE "ALERTA"
+    ADD CONSTRAINT "FK_Alerta_Lectura"
+    FOREIGN KEY ("Id_Lectura")
+    REFERENCES "LECTURA" ("Id_Lectura")
+    ON UPDATE CASCADE
+    ON DELETE CASCADE;
+
+-- ------------------------------------------------------------
+-- ALERTA → USUARIO
+-- Un usuario puede atender/cerrar una alerta (opcional)
+-- ------------------------------------------------------------
+ALTER TABLE "ALERTA"
+    ADD CONSTRAINT "FK_Alerta_Usuario"
+    FOREIGN KEY ("Id_Usuario")
+    REFERENCES "USUARIO" ("Id_Usuario")
+    ON UPDATE CASCADE
+    ON DELETE SET NULL;     -- si se borra el usuario, la alerta queda sin responsable
+
+-- ------------------------------------------------------------
+-- HISTORIAL_LOTE → LOTE
+-- ------------------------------------------------------------
+ALTER TABLE "HISTORIAL_LOTE"
+    ADD CONSTRAINT "FK_Historial_Lote"
+    FOREIGN KEY ("Id_Lote")
+    REFERENCES "LOTE" ("Id_Lote")
+    ON UPDATE CASCADE
+    ON DELETE CASCADE;
+
+-- ------------------------------------------------------------
+-- HISTORIAL_LOTE → SESION
+-- El historial sabe en qué sesión ocurrió la acción
+-- ------------------------------------------------------------
+ALTER TABLE "HISTORIAL_LOTE"
+    ADD CONSTRAINT "FK_Historial_Sesion"
+    FOREIGN KEY ("Id_Sesion")
+    REFERENCES "SESION" ("Id_Sesion")
+    ON UPDATE CASCADE
+    ON DELETE CASCADE;
+
+-- ------------------------------------------------------------
+-- HISTORIAL_LOTE → USUARIO
+-- El historial sabe qué usuario realizó la acción
+-- ------------------------------------------------------------
+ALTER TABLE "HISTORIAL_LOTE"
+    ADD CONSTRAINT "FK_Historial_Usuario"
+    FOREIGN KEY ("Id_Usuario")
+    REFERENCES "USUARIO" ("Id_Usuario")
+    ON UPDATE CASCADE
+    ON DELETE RESTRICT;
+
+-- ============================================================
+--  VERIFICACIÓN — consultar todas las FK creadas
+-- ============================================================
+SELECT
+    tc.table_name      AS "Tabla",
+    kcu.column_name    AS "Columna",
+    ccu.table_name     AS "Referencia_Tabla",
+    ccu.column_name    AS "Referencia_Columna",
+    tc.constraint_name AS "Nombre_FK"
+FROM information_schema.table_constraints AS tc
+JOIN information_schema.key_column_usage  AS kcu
+    ON tc.constraint_name = kcu.constraint_name
+JOIN information_schema.constraint_column_usage AS ccu
+    ON ccu.constraint_name = tc.constraint_name
+WHERE tc.constraint_type = 'FOREIGN KEY'
+ORDER BY tc.table_name;
+

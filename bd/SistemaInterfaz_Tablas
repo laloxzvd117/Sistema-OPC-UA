@@ -1,0 +1,134 @@
+-- ============================================================
+--  SCRIPT 01 — CREACIÓN DE BASE DE DATOS Y TABLAS
+--  Sistema: OPC UA — Línea de Producción de Frascos
+--  Base de datos: SistemaInterfaz
+-- ============================================================
+
+CREATE DATABASE "SistemaInterfaz";
+
+-- ------------------------------------------------------------
+-- 1. ROL
+-- ------------------------------------------------------------
+CREATE TABLE "ROL" (
+    "Id_Rol"      SERIAL       PRIMARY KEY,
+    "Nombre_Rol"  VARCHAR(50)  NOT NULL,
+    "Descripcion" VARCHAR(150)
+);
+
+-- Datos iniciales de roles
+INSERT INTO "ROL" ("Nombre_Rol", "Descripcion") VALUES
+    ('Administrador', 'Se encarga de labores administrativas y gestionar a los empleados en el sistema.'),
+    ('Empleado',      'Se encarga de gestionar la información de la línea de producción.');
+
+-- ------------------------------------------------------------
+-- 2. USUARIO
+-- Nota: "Contrasena" almacena el hash bcrypt de la contraseña
+-- ------------------------------------------------------------
+CREATE TABLE "USUARIO" (
+    "Id_Usuario"        SERIAL       PRIMARY KEY,
+    "Nombre"            VARCHAR(100) NOT NULL,
+    "Username"          VARCHAR(50)  UNIQUE NOT NULL,
+    "Contrasena"        VARCHAR(255) NOT NULL,   -- hash bcrypt
+    "Estado"            BOOLEAN      DEFAULT TRUE,
+    "Intentos_Fallidos" INTEGER      DEFAULT 0,
+    "Fecha_Bloqueo"     TIMESTAMP,
+    "Id_Rol"            INTEGER,
+
+    CONSTRAINT "Chk_Intentos_Fallidos"
+        CHECK ("Intentos_Fallidos" BETWEEN 0 AND 3)
+);
+
+-- ------------------------------------------------------------
+-- 3. SESION
+-- ------------------------------------------------------------
+CREATE TABLE "SESION" (
+    "Id_Sesion"     SERIAL       PRIMARY KEY,
+    "Id_Usuario"    INTEGER      NOT NULL,
+    "Fecha_Inicio"  TIMESTAMP    NOT NULL DEFAULT NOW(),
+    "Fecha_Fin"     TIMESTAMP,
+    "IP_Origen"     VARCHAR(45),          -- soporta IPv4 e IPv6
+    "Estado_Sesion" VARCHAR(20)  NOT NULL DEFAULT 'activa',
+    "Token"         VARCHAR(255) UNIQUE,
+
+    CONSTRAINT "Chk_Estado_Sesion"
+        CHECK ("Estado_Sesion" IN ('activa', 'cerrada', 'expirada'))
+);
+
+-- ------------------------------------------------------------
+-- 4. PRODUCTO
+-- ------------------------------------------------------------
+CREATE TABLE "PRODUCTO" (
+    "Id_Producto"       SERIAL       PRIMARY KEY,
+    "Nombre_Producto"   VARCHAR(100) NOT NULL,
+    "Peso_Esperado_g"   NUMERIC(8,2) NOT NULL,    -- gramos
+    "Tamano"            VARCHAR(20)  NOT NULL,     -- pequeño / mediano / grande
+    "Tolerancia_Peso"   NUMERIC(5,2) DEFAULT 0.5, -- ± gramos permitidos
+    "Tolerancia_Tamano" NUMERIC(5,2) DEFAULT 1.0, -- ± mm permitidos
+
+    CONSTRAINT "Chk_Tamano_Producto"
+        CHECK ("Tamano" IN ('pequeño', 'mediano', 'grande'))
+);
+
+-- ------------------------------------------------------------
+-- 5. LOTE
+-- ------------------------------------------------------------
+CREATE TABLE "LOTE" (
+    "Id_Lote"      SERIAL      PRIMARY KEY,
+    "Codigo_Lote"  VARCHAR(50) UNIQUE NOT NULL,
+    "Id_Producto"  INTEGER     NOT NULL,
+    "Id_Usuario"   INTEGER     NOT NULL,
+    "Fecha_Inicio" TIMESTAMP   NOT NULL DEFAULT NOW(),
+    "Fecha_Fin"    TIMESTAMP,
+    "Estado_Lote"  VARCHAR(20) NOT NULL DEFAULT 'activo',
+
+    CONSTRAINT "Chk_Estado_Lote"
+        CHECK ("Estado_Lote" IN ('activo', 'finalizado', 'pausado', 'cancelado'))
+);
+
+-- ------------------------------------------------------------
+-- 6. LECTURA
+-- ------------------------------------------------------------
+CREATE TABLE "LECTURA" (
+    "Id_Lectura"    SERIAL      PRIMARY KEY,
+    "Id_Lote"       INTEGER     NOT NULL,
+    "Fecha_Hora"    TIMESTAMP   NOT NULL DEFAULT NOW(),
+    "Peso_Medido_g" NUMERIC(8,2),
+    "Tamano_Medido" NUMERIC(8,2),
+    "Linea"         VARCHAR(20) NOT NULL,   -- principal / pequeño / mediano / grande
+    "Estado"        VARCHAR(20) NOT NULL DEFAULT 'correcto',
+
+    CONSTRAINT "Chk_Linea"
+        CHECK ("Linea" IN ('principal', 'pequeño', 'mediano', 'grande')),
+    CONSTRAINT "Chk_Estado_Lectura"
+        CHECK ("Estado" IN ('correcto', 'defectuoso', 'en_revision'))
+);
+
+-- ------------------------------------------------------------
+-- 7. ALERTA
+-- ------------------------------------------------------------
+CREATE TABLE "ALERTA" (
+    "Id_Alerta"   SERIAL       PRIMARY KEY,
+    "Id_Lectura"  INTEGER      NOT NULL,
+    "Id_Usuario"  INTEGER,                  -- usuario que la atiende (puede ser NULL al inicio)
+    "Descripcion" VARCHAR(255) NOT NULL,
+    "Fecha_Hora"  TIMESTAMP    NOT NULL DEFAULT NOW(),
+    "Tipo_Error"  VARCHAR(20)  NOT NULL,
+    "Atendida"    BOOLEAN      DEFAULT FALSE,
+
+    CONSTRAINT "Chk_Tipo_Error"
+        CHECK ("Tipo_Error" IN ('critico', 'moderado', 'informativo'))
+);
+
+-- ------------------------------------------------------------
+-- 8. HISTORIAL_LOTE
+-- ------------------------------------------------------------
+CREATE TABLE "HISTORIAL_LOTE" (
+    "Id_Historial" SERIAL       PRIMARY KEY,
+    "Id_Lote"      INTEGER      NOT NULL,
+    "Id_Sesion"    INTEGER      NOT NULL,
+    "Id_Usuario"   INTEGER      NOT NULL,
+    "Fecha_Hora"   TIMESTAMP    NOT NULL DEFAULT NOW(),
+    "Accion"       VARCHAR(50)  NOT NULL,   -- inicio_lote, cierre_lote, pausa, etc.
+    "Detalle"      VARCHAR(255)
+);
+
