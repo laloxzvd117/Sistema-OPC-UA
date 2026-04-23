@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Módulo Empleado</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='dashboard_base.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='empleado.css') }}" />
+</head>
+<body>
+<div class="app-layout">
+
+  <!-- ═══ SIDEBAR ═══════════════════════════════════════════════════ -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-icon">⚙</div>
+      <div>
+        <div class="sidebar-logo-text">OPC UA</div>
+        <div class="sidebar-logo-sub">CONTROL SYSTEM</div>
+      </div>
+    </div>
+
+    <div class="sidebar-user">
+      <div class="sidebar-avatar" id="avatarLetters">EM</div>
+      <div class="sidebar-user-info">
+        <div class="sidebar-user-name">{{ nombre }}</div>
+        <div class="sidebar-user-role">{{ rol }}</div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section-title">Mi Módulo</div>
+      <a href="{{ url_for('empleado_dashboard') }}" class="nav-link active">
+        <span class="nav-icon">◈</span> Panel Principal
+      </a>
+
+      {% if rol == 'Administrador' %}
+      <div class="nav-section-title">Administración</div>
+      <a href="{{ url_for('admin_dashboard') }}" class="nav-link">
+        <span class="nav-icon">◉</span> Panel Admin
+      </a>
+      {% endif %}
+
+      <div class="nav-section-title">Sistema</div>
+      <a href="{{ url_for('logout') }}" class="nav-link">
+        <span class="nav-icon">⊗</span> Cerrar Sesión
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="topbar-status">
+        <span class="status-dot"></span>
+        <span>SISTEMA ACTIVO</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ═══ MAIN ═══════════════════════════════════════════════════════ -->
+  <div class="main-content">
+    <div class="topbar">
+      <div class="topbar-title">Panel Principal</div>
+      <div class="topbar-breadcrumb">EMPLEADO › PANEL PRINCIPAL</div>
+      <div class="topbar-status">
+        <span class="status-dot"></span> EN LÍNEA
+      </div>
+    </div>
+
+    <div class="page-body">
+
+      <!-- ── PERFIL ────────────────────────────────────────────────── -->
+      <div class="profile-card">
+        <div class="profile-avatar" id="profileAvatar">EM</div>
+        <div>
+          <div class="profile-name">{{ nombre }}</div>
+          <div class="profile-meta">
+            <span class="badge badge-blue">{{ rol }}</span>
+            <span class="badge badge-green">Turno Activo</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── GRID PRINCIPAL ────────────────────────────────────────── -->
+      <div class="grid-2 mb-24">
+
+        <!-- Contador de producción -->
+        <div class="card prod-counter-card">
+          <div class="card-title">
+            <span class="card-title-accent"></span>
+            Producción del Turno
+          </div>
+          <div class="prod-big-number" id="totalFrascos">—</div>
+          <div class="stat-sub" style="margin-top:-6px">frascos procesados</div>
+          <div class="prod-breakdown">
+            <div class="prod-mini" style="border-color:rgba(57,255,136,0.2)">
+              <span class="prod-mini-val" id="countCorrectos" style="color:var(--accent-green)">—</span>
+              <span class="prod-mini-lbl">Correctos</span>
+            </div>
+            <div class="prod-mini" style="border-color:rgba(255,78,78,0.2)">
+              <span class="prod-mini-val" id="countDefectuosos" style="color:var(--accent-danger)">—</span>
+              <span class="prod-mini-lbl">Defectuosos</span>
+            </div>
+            <div class="prod-mini" style="border-color:rgba(0,200,255,0.2)">
+              <span class="prod-mini-val" id="pctCalidad" style="color:var(--accent-blue)">—</span>
+              <span class="prod-mini-lbl">Calidad</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Botón de encendido/apagado de línea -->
+        <div class="card">
+          <div class="card-title">
+            <span class="card-title-accent"></span>
+            Control de Línea
+          </div>
+          <div class="power-section">
+            <div class="power-btn-wrap" onclick="toggleLinea()">
+              <div class="power-ring" id="powerRing"></div>
+              <button class="power-btn off" id="powerBtn" title="Encender / Apagar línea">
+                <!-- Ícono power SVG -->
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M13 3h-2v10h2V3zm4.83 2.17-1.42 1.42C17.99 7.86 19 9.81 19 12c0 3.87-3.13 7-7 7s-7-3.13-7-7c0-2.19 1.01-4.14 2.58-5.42L6.17 5.17C4.23 6.82 3 9.26 3 12c0 4.97 4.03 9 9 9s9-4.03 9-9c0-2.74-1.23-5.18-3.17-6.83z"/>
+                </svg>
+              </button>
+            </div>
+            <div class="power-label off" id="powerLabel">APAGADO</div>
+            <div class="power-sublabel" id="powerSub">Haz clic para encender la línea de producción</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── REPORTE DE ESTADO ──────────────────────────────────────── -->
+      <div class="grid-2 mb-24">
+
+        <!-- Formulario de reporte -->
+        <div class="card">
+          <div class="card-title">
+            <span class="card-title-accent"></span>
+            Reporte de Estado
+          </div>
+
+          <div class="report-form">
+            <!-- Indicador dinámico del estado actual -->
+            <div class="report-status-indicator normal" id="statusIndicator">
+              <span>●</span> <span id="statusText">Sistema operando con normalidad</span>
+            </div>
+
+            <div class="form-group" style="margin-bottom:0">
+              <label class="form-label">Tipo de incidencia</label>
+              <select class="form-control" id="tipoIncidencia" onchange="actualizarIndicador()">
+                <option value="normal">Sin novedad — operación normal</option>
+                <optgroup label="Fallas en producción">
+                  <option value="sensor_peso">Falla sensor de peso (HX711)</option>
+                  <option value="sensor_tamaño">Falla sensor de tamaño (HC-SR04)</option>
+                  <option value="conveyor">Problema en banda transportadora</option>
+                  <option value="clasificador">Falla en clasificador de frascos</option>
+                  <option value="comunicacion">Error de comunicación ESP32</option>
+                </optgroup>
+                <optgroup label="Paros de producción">
+                  <option value="paro_mantenimiento">Paro por mantenimiento programado</option>
+                  <option value="paro_material">Paro por falta de material</option>
+                  <option value="paro_emergencia">Paro de emergencia</option>
+                  <option value="paro_turno">Fin de turno</option>
+                </optgroup>
+                <optgroup label="Otros">
+                  <option value="otro">Otro (describir en observaciones)</option>
+                </optgroup>
+              </select>
+            </div>
+
+            <div class="form-group" style="margin-bottom:0">
+              <label class="form-label">Observaciones</label>
+              <textarea class="form-control" id="observaciones"
+                rows="3"
+                placeholder="Describe el problema o novedad..."
+                style="resize:vertical; font-family:'Exo 2',sans-serif;"></textarea>
+            </div>
+
+            <button class="btn btn-primary" onclick="enviarReporte()" style="align-self:flex-end;">
+              ✓ Enviar Reporte
+            </button>
+          </div>
+        </div>
+
+        <!-- Historial de reportes -->
+        <div class="card">
+          <div class="card-title">
+            <span class="card-title-accent"></span>
+            Reportes del Turno
+          </div>
+          <div id="historialReportes" style="max-height:260px; overflow-y:auto;">
+            <div style="color:var(--text-dim); font-size:0.8rem; text-align:center; padding:20px;">
+              No hay reportes aún
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL — CONFIRMAR ENCENDIDO / APAGADO ══════════════════════════════ -->
+<div class="modal-backdrop" id="modalConfirmLinea">
+  <div class="modal confirm-modal" style="max-width:360px;">
+    <div class="confirm-icon" id="confirmLineaIcon">⚡</div>
+    <p id="confirmLineaTexto">¿Confirmas la operación?</p>
+    <div class="btn-row">
+      <button class="btn btn-warn" onclick="cerrarModalLinea()">Cancelar</button>
+      <button class="btn btn-primary" id="confirmLineaBtn" onclick="ejecutarToggleLinea()">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── INTERCEPTOR DE SESIÓN EXPIRADA ───────────────────────────────────────────
+// Si cualquier fetch devuelve 403, significa que la sesión fue invalidada
+// (admin eliminó o desactivó al usuario) → redirige al login automáticamente
+async function apiFetch(url, options = {}) {
+  const r = await fetch(url, options);
+  if (r.status === 403) {
+    window.location.href = '/login';
+    return null;
+  }
+  return r;
+}
+
+// ── ESTADO DE LÍNEA ───────────────────────────────────────────────────────────
+let lineaEncendida = false;
+
+async function cargarEstadoLinea() {
+  try {
+    const r = await apiFetch('/api/linea/estado');
+    if (!r) return;
+    const d = await r.json();
+    lineaEncendida = d.encendida;
+    actualizarBotonPower();
+  } catch {}
+}
+
+// Muestra el modal de confirmación antes de cambiar el estado
+function toggleLinea() {
+  const icono  = document.getElementById('confirmLineaIcon');
+  const texto  = document.getElementById('confirmLineaTexto');
+  const btn    = document.getElementById('confirmLineaBtn');
+
+  if (lineaEncendida) {
+    icono.textContent = '⏹';
+    texto.innerHTML   = '¿Confirmas <strong>APAGAR</strong> la línea de producción?<br/><span style="font-size:0.8rem;color:#8a8a84;">La producción se detendrá de inmediato.</span>';
+    btn.className     = 'btn btn-danger';
+    btn.textContent   = 'Apagar';
+  } else {
+    icono.textContent = '▶';
+    texto.innerHTML   = '¿Confirmas <strong>ENCENDER</strong> la línea de producción?<br/><span style="font-size:0.8rem;color:#8a8a84;">Asegúrate de que todo esté listo.</span>';
+    btn.className     = 'btn btn-success';
+    btn.textContent   = 'Encender';
+  }
+
+  document.getElementById('modalConfirmLinea').classList.add('open');
+}
+
+function cerrarModalLinea() {
+  document.getElementById('modalConfirmLinea').classList.remove('open');
+}
+
+async function ejecutarToggleLinea() {
+  cerrarModalLinea();
+  // Actualización optimista: cambia el botón de inmediato sin esperar al servidor
+  lineaEncendida = !lineaEncendida;
+  actualizarBotonPower();
+  try {
+    const r = await apiFetch('/api/linea/toggle', { method: 'POST' });
+    if (!r) return;
+    const d = await r.json();
+    // Reconcilia con el estado real del servidor
+    if (d.encendida !== lineaEncendida) {
+      lineaEncendida = d.encendida;
+      actualizarBotonPower();
+    }
+  } catch {
+    // Si falla, revierte el cambio optimista
+    lineaEncendida = !lineaEncendida;
+    actualizarBotonPower();
+  }
+}
+
+function actualizarBotonPower() {
+  const btn    = document.getElementById('powerBtn');
+  const label  = document.getElementById('powerLabel');
+  const sub    = document.getElementById('powerSub');
+  const ring   = document.getElementById('powerRing');
+
+  if (lineaEncendida) {
+    btn.classList.replace('off', 'on');
+    label.classList.replace('off', 'on');
+    label.textContent = 'ENCENDIDO';
+    sub.textContent   = 'Línea de producción activa — haz clic para detener';
+    ring.classList.add('visible');
+  } else {
+    btn.classList.replace('on', 'off');
+    label.classList.replace('on', 'off');
+    label.textContent = 'APAGADO';
+    sub.textContent   = 'Haz clic para encender la línea de producción';
+    ring.classList.remove('visible');
+  }
+}
+
+// ── STATS DE PRODUCCIÓN ──────────────────────────────────────────────────────
+async function cargarStats() {
+  try {
+    const r = await apiFetch('/api/produccion/stats');
+    if (!r) return;
+    const d = await r.json();
+    document.getElementById('totalFrascos').textContent     = d.total_frascos.toLocaleString();
+    document.getElementById('countCorrectos').textContent   = d.correctos.toLocaleString();
+    document.getElementById('countDefectuosos').textContent = d.defectuosos;
+    const pct = d.total_frascos > 0 ? ((d.correctos / d.total_frascos) * 100).toFixed(1) + '%' : '—';
+    document.getElementById('pctCalidad').textContent = pct;
+    lineaEncendida = d.linea_activa;
+    actualizarBotonPower();
+  } catch {}
+}
+
+// ── INDICADOR DE ESTADO ──────────────────────────────────────────────────────
+const incidenciaMap = {
+  normal:             { clase: 'normal',   texto: 'Sistema operando con normalidad' },
+  sensor_peso:        { clase: 'critical', texto: 'Falla activa: sensor de peso' },
+  sensor_tamaño:      { clase: 'critical', texto: 'Falla activa: sensor de tamaño' },
+  conveyor:           { clase: 'critical', texto: 'Problema en banda transportadora' },
+  clasificador:       { clase: 'critical', texto: 'Falla en clasificador de frascos' },
+  comunicacion:       { clase: 'warning',  texto: 'Alerta: error de comunicación ESP32' },
+  paro_mantenimiento: { clase: 'warning',  texto: 'Paro por mantenimiento' },
+  paro_material:      { clase: 'warning',  texto: 'Paro por falta de material' },
+  paro_emergencia:    { clase: 'critical', texto: '⚠ PARO DE EMERGENCIA ACTIVO' },
+  paro_turno:         { clase: 'normal',   texto: 'Paro programado: fin de turno' },
+  otro:               { clase: 'warning',  texto: 'Incidencia registrada — ver observaciones' },
+};
+
+function actualizarIndicador() {
+  const val  = document.getElementById('tipoIncidencia').value;
+  const info = incidenciaMap[val] ?? incidenciaMap.normal;
+  const el   = document.getElementById('statusIndicator');
+  el.className = `report-status-indicator ${info.clase}`;
+  document.getElementById('statusText').textContent = info.texto;
+}
+
+// ── ENVIAR REPORTE ────────────────────────────────────────────────────────────
+const reportesLocales = [];
+
+function enviarReporte() {
+  const tipo = document.getElementById('tipoIncidencia').value;
+  const obs  = document.getElementById('observaciones').value.trim();
+  const info = incidenciaMap[tipo] ?? incidenciaMap.normal;
+
+  const reporte = {
+    tipo,
+    descripcion: incidenciaMap[tipo]?.texto ?? tipo,
+    observaciones: obs,
+    hora: new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }),
+    severidad: info.clase,
+  };
+
+  reportesLocales.unshift(reporte);
+  renderHistorial();
+
+  document.getElementById('tipoIncidencia').value = 'normal';
+  document.getElementById('observaciones').value   = '';
+  actualizarIndicador();
+
+  fetch('/api/reporte', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(reporte)
+  }).catch(() => {});
+}
+
+function renderHistorial() {
+  const cont = document.getElementById('historialReportes');
+  if (!reportesLocales.length) {
+    cont.innerHTML = `<div style="color:var(--text-dim);font-size:0.8rem;text-align:center;padding:20px;">No hay reportes aún</div>`;
+    return;
+  }
+  const colorMap = { normal: 'badge-green', warning: 'badge-warn', critical: 'badge-danger' };
+  cont.innerHTML = reportesLocales.map(r => `
+    <div class="report-item">
+      <div class="report-time">${r.hora}</div>
+      <div>
+        <span class="badge ${colorMap[r.severidad] ?? 'badge-blue'}" style="margin-bottom:4px; display:inline-block;">
+          ${r.descripcion}
+        </span>
+        ${r.observaciones ? `<div class="report-text">${r.observaciones}</div>` : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+// ── AVATAR CON INICIALES ──────────────────────────────────────────────────────
+const nombre = "{{ nombre }}";
+const partes  = nombre.split(' ');
+const initials = (partes[0]?.[0] ?? '') + (partes[1]?.[0] ?? '');
+document.getElementById('avatarLetters').textContent  = initials || 'EM';
+document.getElementById('profileAvatar').textContent  = initials || 'EM';
+
+// ── INIT ─────────────────────────────────────────────────────────────────────
+cargarStats();
+cargarEstadoLinea();
+setInterval(cargarStats, 2000);
+</script>
+</body>
+</html>

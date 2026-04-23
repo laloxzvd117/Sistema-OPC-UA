@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Inicio</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='login.css') }}" />
+</head>
+<body>
+
+<div class="login-wrapper">
+
+  <!-- Header oscuro con logo -->
+  <div class="login-header">
+    <div class="logo-ring">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 15.5A3.5 3.5 0 0 1 8.5 12 3.5 3.5 0 0 1 12 8.5a3.5 3.5 0 0 1 3.5 3.5 3.5 3.5 0 0 1-3.5 3.5m7.43-2.92c.04-.33.07-.67.07-1.08s-.03-.75-.07-1.08l2.33-1.82c.21-.16.27-.47.13-.7l-2.2-3.82c-.13-.23-.42-.31-.65-.23l-2.75 1.1c-.57-.44-1.17-.8-1.84-1.07L14.07 2H9.93L9.57 4.37C8.9 4.64 8.3 5 7.73 5.44L4.98 4.34c-.23-.08-.52 0-.65.23L2.13 8.39c-.14.23-.08.54.13.7l2.33 1.82C4.53 11.25 4.5 11.59 4.5 12s.03.75.07 1.08l-2.33 1.82c-.21.16-.27.47-.13.7l2.2 3.82c.13.23.42.31.65.23l2.75-1.1c.57.44 1.17.8 1.84 1.07L9.93 22h4.14l.36-2.37c.67-.27 1.27-.63 1.84-1.07l2.75 1.1c.23.08.52 0 .65-.23l2.2-3.82c.14-.23.08-.54-.13-.7l-2.33-1.82Z"/>
+      </svg>
+    </div>
+    <div>
+      <div class="login-title">Sistema de Control</div>
+      <div class="login-subtitle">OPC&nbsp;UA&nbsp;·&nbsp;Línea de Producción</div>
+    </div>
+  </div>
+
+  <!-- Card blanca con formulario -->
+  <div class="login-card">
+
+    {% if error %}
+    <div class="error-msg">
+      <span>⚠</span>
+      <span>{{ error }}</span>
+    </div>
+    {% endif %}
+
+    <form method="POST" action="{{ url_for('login') }}">
+
+      <div class="field-group">
+        <label class="field-label" for="username">Usuario</label>
+        <div class="field-input-wrap">
+          <input
+            class="field-input"
+            type="text"
+            id="username"
+            name="username"
+            placeholder="Ingresa tu usuario"
+            autocomplete="username"
+            required
+          />
+          <span class="field-icon">◈</span>
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label" for="password">Contraseña</label>
+        <div class="field-input-wrap">
+          <input
+            class="field-input"
+            type="password"
+            id="password"
+            name="password"
+            placeholder="Ingresa tu contraseña"
+            autocomplete="current-password"
+            required
+          />
+          <span class="field-icon">◉</span>
+          <button type="button" class="toggle-pass" onclick="togglePass()" title="Mostrar/Ocultar">
+            <span id="eye-icon">👁</span>
+          </button>
+        </div>
+      </div>
+
+      <button type="submit" class="btn-login">
+        Iniciar Sesión
+      </button>
+
+    </form>
+  </div>
+
+  <!-- Status -->
+  <div class="login-status">
+    <span class="status-dot"></span>
+    <span>SISTEMA ACTIVO · OPC UA v1.0</span>
+  </div>
+
+</div>
+
+<script>
+  function togglePass() {
+    const input = document.getElementById('password');
+    const icon  = document.getElementById('eye-icon');
+    if (input.type === 'password') {
+      input.type = 'text';
+      icon.textContent = '🙈';
+    } else {
+      input.type = 'password';
+      icon.textContent = '👁';
+    }
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gestión de Empleados</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='dashboard_base.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin.css') }}" />
+</head>
+<body>
+<div class="app-layout">
+
+  <!-- ═══ SIDEBAR ═══════════════════════════════════════════════════ -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-icon">⚙</div>
+      <div>
+        <div class="sidebar-logo-text">OPC UA</div>
+        <div class="sidebar-logo-sub">CONTROL SYSTEM</div>
+      </div>
+    </div>
+
+    <div class="sidebar-user">
+      <div class="sidebar-avatar" id="avatarLetters">AD</div>
+      <div class="sidebar-user-info">
+        <div class="sidebar-user-name">{{ nombre }}</div>
+        <div class="sidebar-user-role">Administrador</div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section-title">General</div>
+      <a href="{{ url_for('admin_dashboard') }}" class="nav-link" data-route="admin_dashboard">
+        <span class="nav-icon">◈</span> Panel Principal
+      </a>
+      <a href="{{ url_for('admin_empleados') }}" class="nav-link" data-route="admin_empleados">
+        <span class="nav-icon">◉</span> Empleados
+      </a>
+
+      <div class="nav-section-title">Módulos</div>
+      <a href="{{ url_for('empleado_dashboard') }}" class="nav-link" data-route="empleado_dashboard">
+        <span class="nav-icon">▷</span> Módulo Empleado
+      </a>
+
+      <div class="nav-section-title">Sistema</div>
+      <a href="{{ url_for('logout') }}" class="nav-link">
+        <span class="nav-icon">⊗</span> Cerrar Sesión
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="topbar-status">
+        <span class="status-dot"></span>
+        <span>SISTEMA ACTIVO</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ═══ MAIN ═══════════════════════════════════════════════════════ -->
+  <div class="main-content">
+    <div class="topbar">
+      <div class="topbar-title">Gestión de Empleados</div>
+      <div class="topbar-breadcrumb">ADMIN › EMPLEADOS</div>
+      <div class="topbar-status">
+        <span class="status-dot"></span> EN LÍNEA
+      </div>
+    </div>
+
+    <div class="page-body">
+
+      <!-- Stats rápidas -->
+      <div class="stat-grid mb-24">
+        <div class="stat-card blue">
+          <div class="stat-label">Total Empleados</div>
+          <div class="stat-value" id="statTotal">—</div>
+        </div>
+        <div class="stat-card green">
+          <div class="stat-label">Activos</div>
+          <div class="stat-value" id="statActivos">—</div>
+        </div>
+        <div class="stat-card warn">
+          <div class="stat-label">Inactivos</div>
+          <div class="stat-value" id="statInactivos">—</div>
+        </div>
+        <div class="stat-card purple">
+          <div class="stat-label">Administradores</div>
+          <div class="stat-value" id="statAdmins">—</div>
+        </div>
+      </div>
+
+      <!-- Tabla CRUD completa -->
+      <div class="card">
+        <div class="card-title">
+          <span class="card-title-accent"></span>
+          Directorio de Usuarios
+        </div>
+
+        <div class="table-toolbar">
+          <div class="search-bar">
+            <span class="search-icon">⊕</span>
+            <input type="text" id="searchInput" placeholder="Buscar por nombre o usuario..." oninput="filtrarTabla()" />
+          </div>
+          <div class="flex gap-8">
+            <select class="form-control" id="filtroRol" onchange="filtrarTabla()" style="width:150px; padding:7px 10px;">
+              <option value="">Todos los roles</option>
+              <option value="Administrador">Administrador</option>
+              <option value="Empleado">Empleado</option>
+            </select>
+            <button class="btn btn-primary" onclick="abrirModalNuevo()">
+              ＋ Nuevo Empleado
+            </button>
+          </div>
+        </div>
+
+        <div style="overflow-x:auto;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Nombre</th>
+                <th>Usuario</th>
+                <th>Rol</th>
+                <th>Estado</th>
+                <th style="text-align:right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="tbodyEmpleados">
+              <tr>
+                <td colspan="6" style="text-align:center;color:var(--text-dim);padding:30px;">Cargando...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div id="tablaPagInfo" style="
+          margin-top:12px;
+          font-family:'Share Tech Mono',monospace;
+          font-size:0.65rem;
+          color:var(--text-dim);
+          letter-spacing:0.1em;
+        "></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL — NUEVO / EDITAR ════════════════════════════════════════ -->
+<div class="modal-backdrop" id="modalEmpleado">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitulo">Nuevo Empleado</div>
+      <button class="modal-close" onclick="cerrarModal('modalEmpleado')">✕</button>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Nombre completo</label>
+      <input type="text" class="form-control" id="empNombre" placeholder="Ej. Juan Pérez" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Nombre de usuario</label>
+      <input type="text" class="form-control" id="empUsuario" placeholder="Ej. jperez" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Contraseña <span style="color:var(--text-dim); font-size:0.7em;">(vacío = no cambiar al editar)</span></label>
+      <input type="password" class="form-control" id="empPassword" placeholder="••••••••" />
+    </div>
+    <div class="grid-2">
+      <div class="form-group">
+        <label class="form-label">Rol</label>
+        <select class="form-control" id="empRol">
+          <option value="Empleado">Empleado</option>
+          <option value="Administrador">Administrador</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Estado</label>
+        <select class="form-control" id="empEstado">
+          <option value="activo">Activo</option>
+          <option value="inactivo">Inactivo</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="flex-between" style="margin-top:8px; gap:10px;">
+      <button class="btn btn-danger" onclick="cerrarModal('modalEmpleado')">Cancelar</button>
+      <button class="btn btn-success" onclick="guardarEmpleado()">✓ Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL — CONFIRMAR ELIMINAR ════════════════════════════════════ -->
+<div class="modal-backdrop" id="modalEliminar">
+  <div class="modal confirm-modal" style="max-width:360px;">
+    <div class="confirm-icon">⚠</div>
+    <p>¿Eliminar a <strong id="nombreEliminar" style="color:var(--text-primary)"></strong>?<br/>Esta acción no se puede deshacer.</p>
+    <div class="btn-row">
+      <button class="btn btn-warn" onclick="cerrarModal('modalEliminar')">Cancelar</button>
+      <button class="btn btn-danger" onclick="confirmarEliminar()">Eliminar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let empleados = [];
+let editId    = null;
+let deleteId  = null;
+
+// ── CARGAR EMPLEADOS DESDE BD ─────────────────────────────────────────────────
+async function cargarEmpleados() {
+  try {
+    const r = await fetch('/api/empleados');
+    empleados = await r.json();
+    filtrarTabla();
+    actualizarStats();
+  } catch (e) {
+    console.error('Error cargando empleados:', e);
+  }
+}
+
+// ── RENDER ────────────────────────────────────────────────────────────────────
+const USERNAME_ACTUAL = "{{ username_actual }}";
+
+function renderTabla(data) {
+  const tbody = document.getElementById('tbodyEmpleados');
+  document.getElementById('tablaPagInfo').textContent =
+    `MOSTRANDO ${data.length} DE ${empleados.length} REGISTROS`;
+
+  if (!data.length) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--text-dim);padding:30px;">Sin resultados</td></tr>`;
+    return;
+  }
+
+  const roleColor = { Administrador: 'badge-danger', Empleado: 'badge-blue' };
+
+  tbody.innerHTML = data.map(e => {
+    const esMismo = e.usuario === USERNAME_ACTUAL;
+    const btnEliminar = esMismo
+      ? `<button class="btn btn-danger btn-sm" disabled title="No puedes eliminar tu propia cuenta"
+           style="opacity:0.4; cursor:not-allowed;">Eliminar</button>`
+      : `<button class="btn btn-danger btn-sm" onclick="abrirModalEliminar(${e.id},'${e.nombre}')">Eliminar</button>`;
+    return `
+    <tr class="employee-row">
+      <td style="color:var(--text-dim);font-family:'Share Tech Mono',monospace;font-size:0.7rem;">${String(e.id).padStart(3,'0')}</td>
+      <td>
+        <span class="emp-avatar">${e.nombre.charAt(0)}</span>
+        ${e.nombre}
+      </td>
+      <td style="font-family:'Share Tech Mono',monospace; color:var(--accent-blue); font-size:0.8rem;">${e.usuario}</td>
+      <td><span class="badge ${roleColor[e.rol] ?? 'badge-blue'}">${e.rol}</span></td>
+      <td><span class="badge ${e.estado === 'activo' ? 'badge-green' : 'badge-danger'}">${e.estado}</span></td>
+      <td style="text-align:right;">
+        <div class="flex gap-8" style="justify-content:flex-end;">
+          <button class="btn btn-primary btn-sm" onclick="abrirModalEditar(${e.id})">Editar</button>
+          ${btnEliminar}
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function filtrarTabla() {
+  const q   = document.getElementById('searchInput').value.toLowerCase();
+  const rol = document.getElementById('filtroRol').value;
+  const filtrados = empleados.filter(e => {
+    const texto = `${e.nombre} ${e.usuario}`.toLowerCase();
+    return (!q || texto.includes(q)) && (!rol || e.rol === rol);
+  });
+  renderTabla(filtrados);
+}
+
+// ── MODALS ────────────────────────────────────────────────────────────────────
+function abrirModalNuevo() {
+  editId = null;
+  document.getElementById('modalTitulo').textContent = 'Nuevo Empleado';
+  document.getElementById('empNombre').value    = '';
+  document.getElementById('empUsuario').value   = '';
+  document.getElementById('empPassword').value  = '';
+  document.getElementById('empRol').value       = 'Empleado';
+  document.getElementById('empEstado').value    = 'activo';
+  document.getElementById('modalEmpleado').classList.add('open');
+}
+
+function abrirModalEditar(id) {
+  const e = empleados.find(x => x.id === id);
+  if (!e) return;
+  editId = id;
+  document.getElementById('modalTitulo').textContent = 'Editar Empleado';
+  document.getElementById('empNombre').value    = e.nombre;
+  document.getElementById('empUsuario').value   = e.usuario;
+  document.getElementById('empPassword').value  = '';
+  document.getElementById('empRol').value       = e.rol;
+  document.getElementById('empEstado').value    = e.estado;
+  document.getElementById('modalEmpleado').classList.add('open');
+}
+
+async function guardarEmpleado() {
+  const nombre   = document.getElementById('empNombre').value.trim();
+  const usuario  = document.getElementById('empUsuario').value.trim();
+  const password = document.getElementById('empPassword').value.trim();
+  const rol      = document.getElementById('empRol').value;
+  const estado   = document.getElementById('empEstado').value;
+
+  if (!nombre || !usuario) { alert('Nombre y usuario son obligatorios.'); return; }
+  if (!editId && !password) { alert('La contraseña es obligatoria para nuevos empleados.'); return; }
+
+  const url    = editId ? `/api/empleados/${editId}` : '/api/empleados';
+  const method = editId ? 'PUT' : 'POST';
+
+  try {
+    const r = await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nombre, usuario, password, rol, estado })
+    });
+    const d = await r.json();
+    if (d.ok) {
+      cerrarModal('modalEmpleado');
+      await cargarEmpleados();
+    } else {
+      alert('Error: ' + d.error);
+    }
+  } catch (e) {
+    alert('Error de conexión');
+  }
+}
+
+function abrirModalEliminar(id, nombre) {
+  deleteId = id;
+  document.getElementById('nombreEliminar').textContent = nombre;
+  document.getElementById('modalEliminar').classList.add('open');
+}
+
+async function confirmarEliminar() {
+  try {
+    const r = await fetch(`/api/empleados/${deleteId}`, { method: 'DELETE' });
+    const d = await r.json();
+    if (d.ok) {
+      cerrarModal('modalEliminar');
+      await cargarEmpleados();
+    } else {
+      alert('Error: ' + d.error);
+    }
+  } catch (e) {
+    alert('Error de conexión');
+  }
+}
+
+function cerrarModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+
+// ── STATS ─────────────────────────────────────────────────────────────────────
+function actualizarStats() {
+  document.getElementById('statTotal').textContent     = empleados.length;
+  document.getElementById('statActivos').textContent   = empleados.filter(e => e.estado === 'activo').length;
+  document.getElementById('statInactivos').textContent = empleados.filter(e => e.estado === 'inactivo').length;
+  document.getElementById('statAdmins').textContent    = empleados.filter(e => e.rol === 'Administrador').length;
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+cargarEmpleados();
+
+const nombreAdmin = "{{ nombre }}";
+const partes = nombreAdmin.split(' ');
+document.getElementById('avatarLetters').textContent =
+  (partes[0]?.[0] ?? '') + (partes[1]?.[0] ?? '');
+
+// ── ACTIVE NAV: marca el link correcto según la URL actual ────────────────────
+(function() {
+  const path = window.location.pathname;
+  document.querySelectorAll('.nav-link[data-route]').forEach(link => {
+    const href = link.getAttribute('href');
+    if (href && path === href) {
+      link.classList.add('active');
+    }
+  });
+})();
+</script>
+</body>
+</html>
